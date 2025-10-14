@@ -11,7 +11,7 @@ def to_channels(arr: np.ndarray, dtype=np.uint8) -> np.ndarray:
 
     return res
 
-def get_data_2d(imageNames, normImage=False, categorical=False, dtype=np.float32, getAffines=False, early_stop=False):
+def get_data_2d(imageNames: list[str], normImage=False, categorical=False, dtype=np.float32, getAffines=False, early_stop=False):
     """
     Load medical image data from names cases list provided into a list for each.
 

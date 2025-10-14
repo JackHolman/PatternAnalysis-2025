@@ -2,10 +2,47 @@ import torch
 import torch.nn as nn
 
 class VectorQuantiser(nn.Module):
-    def __init__(self, embedding_num, embedding_dim):
+    def __init__(self, embedding_num: int, embedding_dim: int):
         super(VectorQuantiser, self).__init__()
 
+        self._embedding_num = embedding_num
+        self._embedding_dim = embedding_dim
+
         self._embeddings = nn.Embedding(num_embeddings=embedding_num, embedding_dim=embedding_dim)
+        # We will use the default normal initialisation for the embeddings.
+
+    def forward(self, inputs):
+        # Input is (B, C=self._embedding_dim, W=4, H=4)
+        inputs_flattened = inputs.view(-1, self._embedding_dim)
+        # Inputs flattened shape is (B * W * H, C=self._embedding_dim)?
+
+        # self._embeddings.weight is (self._embedding_num, self._embedding_dim)
+        # For each batch, and for each of the 4*4 encoding vectors, we need to calculate the distance to each embedding
+        # vector.
+
+        flat_sq_inputs = torch.sum(inputs_flattened**2, dim=1, keepdim=True)
+        sq_weights = torch.sum(self._embeddings.weight**2, dim=1)
+        product = torch.matmul(inputs_flattened, self._embeddings.weight.t())
+
+        distances =  flat_sq_inputs + sq_weights - 2 * product
+
+        # Now get encodings
+        encoding_indices = torch.argmin(distances, dim=1).unsqueeze(1)
+        encodings = torch.zeros(encoding_indices.shape[0], self._embedding_num, device=inputs.device)
+        # I think this just grabs ones and stores them so when we multiply by the encoding weights it grabs them.
+        encodings.scatter(1, encoding_indices, 1)
+
+        # Quantise and unflatten
+        quantised = torch.matmul(encodings, self._embeddings.weight).view(inputs.shape)
+
+        # Loss
+        commitment_loss = torch.mean((quantised.detach() - inputs) ** 2)
+        codebook_loss = torch.mean((quantised - inputs.detach()) ** 2)
+
+        # Straight through estimator
+        quantised = inputs + (quantised - inputs).detach()
+
+        return quantised, commitment_loss, codebook_loss
 
 
 class DownSampleBlock(nn.Module):
@@ -68,7 +105,7 @@ class Decoder(nn.Module):
 
             nn.Flatten(1),  # Change to vector.
             nn.Linear(embedding_dim * 4 * 4, 4096),
-            nn.Unflatten(1, (256 * 4 * 4)), # (B, C=256, W=4, H=4)
+            nn.Unflatten(1, (256, 4, 4)), # (B, C=256, W=4, H=4)
 
             UpSampleBlock(256, 128, 3, 2, 1, 1), # (B, C=128, W=8, H=8)
             UpSampleBlock(128, 64, 3, 2, 1, 1),  # (B, C=64, W=16, H=16)
@@ -84,9 +121,16 @@ class Decoder(nn.Module):
 class VQVAE(nn.Module):
     def __init__(self):
         super(VQVAE, self).__init__()
-        embedding_dim = 64
-        embedding_num = 10000
+        embedding_dim = 128
+        embedding_num = 512
 
         self._encoder = Encoder(embedding_dim)
         self._quantiser = VectorQuantiser(embedding_num, embedding_dim)
         self._decoder = Decoder(embedding_dim)
+
+    def forward(self, inputs):
+        x = self._encoder(inputs)
+        quantised, commitment_loss, codebook_loss = self._quantiser(x)
+        out = self._decoder(quantised)
+
+        return out, commitment_loss, codebook_loss
