@@ -8,11 +8,14 @@ class VectorQuantiser(nn.Module):
         self._embedding_num = embedding_num
         self._embedding_dim = embedding_dim
 
-        self._embeddings = nn.Embedding(num_embeddings=embedding_num, embedding_dim=embedding_dim)
+        #self._embeddings = nn.Embedding(num_embeddings=embedding_num, embedding_dim=embedding_dim)
+        self._embeddings = nn.Parameter(torch.randn((embedding_num, embedding_dim)))
         # We will use the default normal initialisation for the embeddings.
 
-    def forward(self, inputs):
+    def forward(self, inputs, print_usage):
         # Input is (B, C=self._embedding_dim, W=4, H=4)
+        inputs = inputs.permute(0, 2, 3, 1).contiguous()
+
         inputs_flattened = inputs.view(-1, self._embedding_dim)
         # Inputs flattened shape is (B * W * H, C=self._embedding_dim)?
 
@@ -21,8 +24,8 @@ class VectorQuantiser(nn.Module):
         # vector.
 
         flat_sq_inputs = torch.sum(inputs_flattened**2, dim=1, keepdim=True)
-        sq_weights = torch.sum(self._embeddings.weight**2, dim=1)
-        product = torch.matmul(inputs_flattened, self._embeddings.weight.t())
+        sq_weights = torch.sum(self._embeddings**2, dim=1)
+        product = torch.matmul(inputs_flattened, self._embeddings.t())
 
         distances =  flat_sq_inputs + sq_weights - 2 * product
 
@@ -32,17 +35,22 @@ class VectorQuantiser(nn.Module):
         # I think this just grabs ones and stores them so when we multiply by the encoding weights it grabs them.
         encodings.scatter(1, encoding_indices, 1)
 
+        if print_usage:
+            unique = torch.unique(encoding_indices)
+            usage = len(unique) / self._embedding_num
+            print("Usage:", usage)
+
         # Quantise and unflatten
-        quantised = torch.matmul(encodings, self._embeddings.weight).view(inputs.shape)
+        quantised = torch.matmul(encodings, self._embeddings).view(inputs.shape)
 
         # Loss
-        commitment_loss = torch.mean((quantised.detach() - inputs) ** 2)
-        codebook_loss = torch.mean((quantised - inputs.detach()) ** 2)
+        commitment_loss = nn.functional.mse_loss(quantised.detach(), inputs)
+        codebook_loss = nn.functional.mse_loss(quantised, inputs.detach())
 
         # Straight through estimator
         quantised = inputs + (quantised - inputs).detach()
 
-        return quantised, commitment_loss, codebook_loss
+        return quantised.permute(0, 3, 1, 2).contiguous(), commitment_loss, codebook_loss
 
 
 class DownSampleBlock(nn.Module):
@@ -72,7 +80,7 @@ class Encoder(nn.Module):
             DownSampleBlock(128, 256, 3, 1, 1),  # (B, C=256, W=4, H=4)
             nn.Flatten(1), # Change to vector, not an image. (B, C*W*H = 4096)
 
-            nn.Linear(4096, 4 * 4 * embedding_dim),
+            nn.Linear(4096, 4 * 4 * embedding_dim, bias=True),
 
             # Reshape to (B, C=embedding_dim, W=4, H=4)
             nn.Unflatten(1, (embedding_dim, 4, 4))
@@ -90,7 +98,6 @@ class UpSampleBlock(nn.Module):
                                output_padding=output_padding),
             nn.BatchNorm2d(out_channels),
             nn.ReLU(),
-            nn.Dropout2d(0.2),
         )
 
     def forward(self, inputs):
@@ -104,7 +111,7 @@ class Decoder(nn.Module):
             # Input is (B, C=embedding_dim, W=4, H=4)
 
             nn.Flatten(1),  # Change to vector.
-            nn.Linear(embedding_dim * 4 * 4, 4096),
+            nn.Linear(embedding_dim * 4 * 4, 4096, bias=True),
             nn.Unflatten(1, (256, 4, 4)), # (B, C=256, W=4, H=4)
 
             UpSampleBlock(256, 128, 3, 2, 1, 1), # (B, C=128, W=8, H=8)
@@ -128,9 +135,9 @@ class VQVAE(nn.Module):
         self._quantiser = VectorQuantiser(embedding_num, embedding_dim)
         self._decoder = Decoder(embedding_dim)
 
-    def forward(self, inputs):
+    def forward(self, inputs, print_usage):
         x = self._encoder(inputs)
-        quantised, commitment_loss, codebook_loss = self._quantiser(x)
+        quantised, commitment_loss, codebook_loss = self._quantiser(x, print_usage)
         out = self._decoder(quantised)
 
         return out, commitment_loss, codebook_loss
