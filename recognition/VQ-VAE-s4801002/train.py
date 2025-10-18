@@ -4,10 +4,18 @@ import torchvision.transforms as transforms
 import torch
 import torch.nn as nn
 import matplotlib.pyplot as plt
+import random
 
 # Device configuration
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print('cuda' if torch.cuda.is_available() else 'cpu')
+
+# Set random seed for reproducibility
+manualSeed = 200
+random.seed(manualSeed)
+torch.manual_seed(manualSeed)
+# Needed for reproducible results
+torch.use_deterministic_algorithms(True)
 
 image_size = 64
 batch_size = 64
@@ -32,6 +40,7 @@ test_set = torchvision.datasets.ImageFolder(root="data/keras_png_slices_data/ker
 test_loader = torch.utils.data.DataLoader(test_set, batch_size=10)
 
 if __name__ == "__main__":
+    quantise = True
     model = VQVAE().to(device)
     optimiser = torch.optim.Adam(model.parameters(), lr=learning_rate)
     beta = 0.1 # commitment loss scalar.
@@ -45,24 +54,24 @@ if __name__ == "__main__":
             images = images.to(device)
 
             # forward pass
-            recon, commitment_loss, codebook_loss = model(images, batch_idx % 100 == 0)
+            recon, commitment_loss, codebook_loss = model(images, quantise=quantise)
 
             # calculate full loss.
             recon_loss = nn.functional.l1_loss(recon, images)
-            loss = recon_loss + codebook_loss + (beta * commitment_loss)
+            loss = recon_loss + (beta * commitment_loss) + codebook_loss
             loss.backward()
             optimiser.step()
 
             if batch_idx % 20 == 0:
                 # print status
-                print(f"Epoch {epoch} Batch {batch_idx}: \t Loss: {loss.item():.4f} \t Recon Loss: {recon_loss.item():.4f} \t Codebook Loss: {codebook_loss.item():.4f} \t Commitment Loss: {beta*commitment_loss.item():.4f}")
+                print(f"Epoch {epoch} Batch {batch_idx}: \t Loss: {loss.item():.4f} \t Recon Loss: {recon_loss.item():.4f} \t Commitment Loss: {beta*commitment_loss.item():.4f} \t Codebook Loss: {codebook_loss.item():.4f}")
 
         if epoch % 5 == 0:
             model.eval()
             with torch.no_grad():
                 test_images, _ = next(iter(test_loader))
                 test_images = test_images.to(device)
-                recon_images, _, _ = model(test_images, False)
+                recon_images, _, _ = model(test_images, quantise=quantise, disp_unique=True)
 
                 # Plot original vs reconstructed
                 fig, axes = plt.subplots(2, 10, figsize=(20, 4))
@@ -86,7 +95,7 @@ if __name__ == "__main__":
 
                 test_images, _ = next(iter(train_loader))
                 test_images = test_images.to(device)
-                recon_images, _, _ = model(test_images, False)
+                recon_images, _, _ = model(test_images, quantise=quantise)
 
                 # Plot original vs reconstructed
                 fig, axes = plt.subplots(2, 10, figsize=(20, 4))
