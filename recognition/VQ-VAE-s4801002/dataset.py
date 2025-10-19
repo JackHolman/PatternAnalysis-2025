@@ -1,6 +1,34 @@
 import numpy as np
 import nibabel as nib
-from tqdm import tqdm
+import torch.utils.data
+from torch.utils.data import Dataset
+import os
+from glob import glob
+from matplotlib import pyplot as plt
+import torchvision.transforms as transforms
+from normalise import Normalise
+
+class HipMRIStudyDataset(Dataset):
+    def __init__(self, images_dir: str, transforms=None):
+        self._images_dir = images_dir
+        self._transforms = transforms
+
+        # Get paths to all images in the image directory
+        self._img_paths = glob(os.path.join(self._images_dir, '*'))
+
+    def __len__(self):
+        return len(self._img_paths)
+
+    def __getitem__(self, idx):
+        if self._transforms:
+            data = get_data_2d([self._img_paths[idx]])[0]
+            data = self._transforms(data)
+        else:
+            # just get data normalised
+            data = get_data_2d([self._img_paths[idx]], normImage=True)[0]
+
+        return data
+
 
 def to_channels(arr: np.ndarray, dtype=np.uint8) -> np.ndarray:
     channels = np.unique(arr)
@@ -40,7 +68,7 @@ def get_data_2d(imageNames: list[str], normImage=False, categorical=False, dtype
         rows, cols = first_case.shape
         images = np.zeros((num, rows, cols), dtype=dtype)
 
-    for i, inName in enumerate(tqdm(imageNames)):
+    for i, inName in enumerate(imageNames):
         niftiImage = nib.load(inName)
         inImage = niftiImage.get_fdata(caching='unchanged') # read disk only
         affine = niftiImage.affine
@@ -63,4 +91,20 @@ def get_data_2d(imageNames: list[str], normImage=False, categorical=False, dtype
         return images, affines
     else:
         return images
+
+if __name__ == "__main__":
+    # Load a single image and plot, for testing.
+    path = "data/case.nii.gz"
+
+    img = get_data_2d([path], normImage=True)[0]
+    print(torch.from_numpy(img).shape)
+    plt.imshow(img)
+    plt.show() # Images are (256, 128)
+
+    # Load the dataset and print the shape of the first batch.
+    dataset = HipMRIStudyDataset("data/real_data/train", transforms=transforms.Compose([transforms.ToTensor(), transforms.Resize((256, 128)), transforms.CenterCrop((256, 128)), Normalise()]))
+    dataloader = torch.utils.data.DataLoader(dataset, batch_size=16)
+    print("Batch size:", next(iter(dataloader)).shape)
+    unique = torch.unique(next(iter(dataloader))[0][0])
+    print(unique)
 
