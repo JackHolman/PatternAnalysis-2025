@@ -69,10 +69,10 @@ class DownSampleBlock(nn.Module):
 
         self._block = nn.Sequential(
             nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding),
-            nn.BatchNorm2d(out_channels),
+            nn.InstanceNorm2d(out_channels),
             nn.LeakyReLU(),
-            nn.Dropout2d(0.1),
-            nn.MaxPool2d(kernel_size=pool_kernel, stride=pool_stride) # This halves the height and width.
+            #nn.Dropout2d(0.1),
+            #nn.MaxPool2d(kernel_size=pool_kernel, stride=pool_stride) # This halves the height and width.
         )
 
     def forward(self, inputs):
@@ -86,21 +86,16 @@ class Encoder(nn.Module):
 
         # Input is (B, C=1, W=128, H=256)
         self._encoder_conv = nn.Sequential(
-            DownSampleBlock(1, 32, 3, 1, 1), # (B, C=32, W=64, H=128)
-            ResidualBlock(32),  # Size Unchanged
-            DownSampleBlock(32, 64, 3, 1, 1),  # (B, C=64, W=32, H=64)
-            ResidualBlock(64),  # Size Unchanged
-            DownSampleBlock(64, 128, 3, 1, 1),  # (B, C=128, W=16, H=32)
-            ResidualBlock(128), # Size Unchanged
-            DownSampleBlock(128, 256, 3, 1, 1),  # (B, C=256, W=8, H=16)
-            ResidualBlock(256), # Size Unchanged
-            DownSampleBlock(256, 512, 3, 1, 1),  # (B, C=512, W=4, H=8)
-            ResidualBlock(512),  # Size Unchanged
-            ResidualBlock(512),  # Size Unchanged
+            DownSampleBlock(1, 32, 4, 2, 1), # (B, C=32, W=64, H=128)
+            DownSampleBlock(32, 64, 4, 2, 1),  # (B, C=64, W=32, H=64)
+            DownSampleBlock(64, 128, 4, 2, 1),  # (B, C=128, W=16, H=32)
+            DownSampleBlock(128, 256, 4, 2, 1),  # (B, C=256, W=8, H=16)
+            DownSampleBlock(256, 512, 4, 2, 1),  # (B, C=512, W=4, H=8)
 
+            ResidualBlock(512),
+            ResidualBlock(512),
             # Now compress into embedding space.
             nn.Conv2d(512, embedding_dim, 1, 1, 0), # (B, C=embedding_dim, W=4, H=8)
-            nn.BatchNorm2d(embedding_dim)
         )
 
     def forward(self, inputs):
@@ -113,8 +108,8 @@ class UpSampleBlock(nn.Module):
         self._block = nn.Sequential(
             nn.ConvTranspose2d(in_channels, out_channels, kernel_size=kernel_size, stride=stride, padding=padding,
                                output_padding=output_padding),
-            nn.BatchNorm2d(out_channels),
-            nn.LeakyReLU(),
+            nn.InstanceNorm2d(out_channels),
+            nn.LeakyReLU()
         )
 
     def forward(self, inputs):
@@ -127,14 +122,13 @@ class Decoder(nn.Module):
         self._decoder_block = nn.Sequential(
             # 1x1 convolution to increase number of channels
             nn.ConvTranspose2d(embedding_dim, 512, kernel_size=1), # (B, C=512, W=4, H=8)
-
-            UpSampleBlock(512, 256, 3, 2, 1, 1), # (B, C=256, W=8, H=16)
-            ResidualBlock(256),  # Size Unchanged
-            UpSampleBlock(256, 128, 3, 2, 1, 1),  # (B, C=128, W=16, H=32)
-            UpSampleBlock(128, 64, 3, 2, 1, 1), # (B, C=64, W=32, H=64)
-            UpSampleBlock(64, 32, 3, 2, 1, 1),  # (B, C=32, W=64, H=128)
-
-            nn.ConvTranspose2d(32, 1, 3, 2, 1, 1), # (B, C=1, W=128, H=256)
+            ResidualBlock(512),
+            ResidualBlock(512),
+            UpSampleBlock(512, 256, 4, 2, 1, 0), # (B, C=256, W=8, H=16)
+            UpSampleBlock(256, 128, 4, 2, 1, 0),  # (B, C=128, W=16, H=32)
+            UpSampleBlock(128, 64, 4, 2, 1, 0), # (B, C=64, W=32, H=64)
+            UpSampleBlock(64, 32, 4, 2, 1, 0),  # (B, C=32, W=64, H=128)
+            nn.ConvTranspose2d(32, 1, 4, 2, 1, 0), # (B, C=1, W=128, H=256)
             nn.Sigmoid()
         )
 

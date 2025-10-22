@@ -13,7 +13,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print('cuda' if torch.cuda.is_available() else 'cpu')
 
 # Set random seed for reproducibility
-manualSeed = 200
+manualSeed = 20650
 random.seed(manualSeed)
 torch.manual_seed(manualSeed)
 # Needed for reproducible results
@@ -39,7 +39,7 @@ test_set = HipMRIStudyDataset("/home/groups/comp3710/HipMRI_Study_open/keras_sli
     Normalise() # Custom normalisation transform to get data in [0, 1]
 ]))
 
-test_loader = torch.utils.data.DataLoader(test_set, batch_size=batch_size, shuffle=False)
+#test_loader = torch.utils.data.DataLoader(test_set, batch_size=batch_size, shuffle=False)
 
 if __name__ == "__main__":
     quantise = True
@@ -50,7 +50,7 @@ if __name__ == "__main__":
 
 
     # train
-    for epoch in range(50):
+    for epoch in range(300):
         model.train()
 
         for (batch_idx, images) in enumerate(train_loader):
@@ -62,6 +62,7 @@ if __name__ == "__main__":
             # calculate full loss.
             recon_loss = nn.functional.l1_loss(recon, images)
             loss = recon_loss + (beta * commitment_loss) + codebook_loss
+            optimiser.zero_grad() # this is important.
             loss.backward()
             optimiser.step()
 
@@ -98,6 +99,9 @@ if __name__ == "__main__":
                 plt.tight_layout()
                 #plt.show()
                 plt.savefig(f"plots/train-{epoch}.png")
+
+    # save the model.
+    torch.save(model, "vq-vae.model")
 
     # Training complete, now run on test set.
     total_test_ssim = 0
