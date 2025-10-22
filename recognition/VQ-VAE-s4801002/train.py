@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import random
 from dataset import HipMRIStudyDataset
 from normalise import Normalise
+import numpy as np
 
 # Device configuration
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -39,7 +40,7 @@ test_set = HipMRIStudyDataset("/home/groups/comp3710/HipMRI_Study_open/keras_sli
     Normalise() # Custom normalisation transform to get data in [0, 1]
 ]))
 
-#test_loader = torch.utils.data.DataLoader(test_set, batch_size=batch_size, shuffle=False)
+test_loader = torch.utils.data.DataLoader(test_set, batch_size=batch_size, shuffle=False)
 
 if __name__ == "__main__":
     quantise = True
@@ -48,9 +49,13 @@ if __name__ == "__main__":
     beta = 0.2 # commitment loss scalar.
     ssim = StructuralSimilarityIndexMeasure(data_range=1.0).to(device)
 
+    total_losses = []
+    recon_losses = []
+    commit_losses = []
+    codebook_losses = []
 
     # train
-    for epoch in range(300):
+    for epoch in range(150):
         model.train()
 
         for (batch_idx, images) in enumerate(train_loader):
@@ -65,6 +70,11 @@ if __name__ == "__main__":
             optimiser.zero_grad() # this is important.
             loss.backward()
             optimiser.step()
+
+            total_losses.append(loss.item())
+            recon_losses.append(recon_loss.item())
+            codebook_losses.append(codebook_loss.item())
+            commit_losses.append(beta * commitment_loss.item())
 
             if batch_idx % 20 == 0:
                 # print status
@@ -139,3 +149,16 @@ if __name__ == "__main__":
 
         avg_ssim = total_test_ssim / test_batches
         print(f"Average test SSIM={avg_ssim:.4f}")
+
+        # plot the losses
+        xs = np.linspace(0, len(total_losses), len(total_losses))
+
+        plt.plot(xs, total_losses, label="Total Loss")
+        plt.plot(xs, recon_losses, label="Reconstruction Loss")
+        plt.plot(xs, commit_losses, label="Commitment Loss")
+        plt.plot(xs, codebook_losses, label="Codebook Loss")
+        plt.xlabel("Batch")
+        plt.ylabel("Loss")
+        plt.title("Batch vs Loss")
+        plt.legend()
+        plt.savefig("plots/loss.png")
