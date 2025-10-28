@@ -14,20 +14,20 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print('cuda' if torch.cuda.is_available() else 'cpu')
 
 # Set random seed for reproducibility
-manualSeed = 20650
+manualSeed = 3
 random.seed(manualSeed)
 torch.manual_seed(manualSeed)
 # Needed for reproducible results
 torch.use_deterministic_algorithms(True)
 
-batch_size = 64
-learning_rate = 1e-4
+batch_size = 16
+learning_rate = 3e-4
 
 # Images are 256x128
 train_set = HipMRIStudyDataset("/home/groups/comp3710/HipMRI_Study_open/keras_slices_data/keras_slices_train", transforms=transforms.Compose([
     transforms.ToTensor(),
-    transforms.Resize((256, 128)),
-    transforms.CenterCrop((256, 128)),
+    transforms.Resize((128, 64)),
+    transforms.CenterCrop((128, 64)),
     Normalise() # Custom normalisation transform to get data in [0, 1]
 ]))
 
@@ -35,8 +35,8 @@ train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shu
 
 test_set = HipMRIStudyDataset("/home/groups/comp3710/HipMRI_Study_open/keras_slices_data/keras_slices_test", transforms=transforms.Compose([
     transforms.ToTensor(),
-    transforms.Resize((256, 128)),
-    transforms.CenterCrop((256, 128)),
+    transforms.Resize((128, 64)),
+    transforms.CenterCrop((128, 64)),
     Normalise() # Custom normalisation transform to get data in [0, 1]
 ]))
 
@@ -55,7 +55,7 @@ if __name__ == "__main__":
     codebook_losses = []
 
     # train
-    for epoch in range(150):
+    for epoch in range(101):
         model.train()
 
         for (batch_idx, images) in enumerate(train_loader):
@@ -109,6 +109,7 @@ if __name__ == "__main__":
                 plt.tight_layout()
                 #plt.show()
                 plt.savefig(f"plots/train-{epoch}.png")
+                plt.close()
 
     # save the model.
     torch.save(model, "vq-vae.model")
@@ -117,6 +118,7 @@ if __name__ == "__main__":
     total_test_ssim = 0
     test_batches = 0
     model.eval()
+    print("Evaluating Model On Test Set")
     with torch.no_grad():
         for batch_idx, imgs in enumerate(test_loader):
             imgs = imgs.to(device)
@@ -143,6 +145,7 @@ if __name__ == "__main__":
                 plt.suptitle(f'VQ-VAE Reconstructions (Test Set) batch ssim={total_test_ssim}', fontsize=14)
                 plt.tight_layout()
                 plt.savefig(f"plots/test.png")
+                plt.close()
 
 
             test_batches+= 1
@@ -153,6 +156,7 @@ if __name__ == "__main__":
         # plot the losses
         xs = np.linspace(0, len(total_losses), len(total_losses))
 
+        plt.figure() # create new plot.
         plt.plot(xs, total_losses, label="Total Loss")
         plt.plot(xs, recon_losses, label="Reconstruction Loss")
         plt.plot(xs, commit_losses, label="Commitment Loss")
