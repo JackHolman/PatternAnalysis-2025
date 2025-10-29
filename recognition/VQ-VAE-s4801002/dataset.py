@@ -1,36 +1,30 @@
-import numpy as np
-import nibabel as nib
-import torch.utils.data
-from torch.utils.data import Dataset
 import os
 from glob import glob
-from matplotlib import pyplot as plt
+from typing import Union
+
+import nibabel as nib
+import numpy as np
+import torch
 import torchvision.transforms as transforms
+from torch.utils.data import Dataset
+
 from normalise import Normalise
 
-class HipMRIStudyDataset(Dataset):
-    def __init__(self, images_dir: str, transforms=None):
-        self._images_dir = images_dir
-        self._transforms = transforms
+# Data Transforms =============================================================
+# Define the transforms applied to the data before being used on the model.
+HipMRIStudyTransforms = transforms.Compose([
+    transforms.ToTensor(),
+    transforms.Resize((128, 64)),
+    transforms.CenterCrop((128, 64)),
+    Normalise() # Custom normalisation transform to get data in [0, 1]
+])
 
-        # Get paths to all images in the image directory
-        self._img_paths = glob(os.path.join(self._images_dir, '*'))
-
-    def __len__(self):
-        return len(self._img_paths)
-
-    def __getitem__(self, idx):
-        if self._transforms:
-            data = get_data_2d([self._img_paths[idx]])[0]
-            data = self._transforms(data)
-        else:
-            # just get data normalised
-            data = get_data_2d([self._img_paths[idx]], normImage=True)[0]
-
-        return data
-
-
+# Data loading helpers ========================================================
 def to_channels(arr: np.ndarray, dtype=np.uint8) -> np.ndarray:
+    """
+    This function is heavily based on the one provided in the task sheet.
+    """
+
     channels = np.unique(arr)
     res = np.zeros(arr.shape + (len(channels), ), dtype=dtype)
     for c in channels:
@@ -50,6 +44,8 @@ def get_data_2d(imageNames: list[str], normImage=False, categorical=False, dtype
     :param imageNames: Array of image names.
     :param normImage: bool (normalise the image 0.0-1.0)
     :param categorical: bool (whether images have categories)
+    :param dtype: Data type to return images in.
+    :param getAffines: Whether to return affines.
     :param early_stop: Stop loading pre-maturely, leaves arrays mostly empty, for quick loading and testing scripts.
     """
 
@@ -92,19 +88,42 @@ def get_data_2d(imageNames: list[str], normImage=False, categorical=False, dtype
     else:
         return images
 
-if __name__ == "__main__":
-    # Load a single image and plot, for testing.
-    path = "data/case.nii.gz"
 
-    img = get_data_2d([path], normImage=True)[0]
-    print(torch.from_numpy(img).shape)
-    plt.imshow(img)
-    plt.show() # Images are (256, 128)
+# Hip MRI Study Dataset =======================================================
+class HipMRIStudyDataset(Dataset):
+    """
+    Custom data set configured to be compatible with the Hip MRI Study data on Rangpur.
+    """
 
-    # Load the dataset and print the shape of the first batch.
-    dataset = HipMRIStudyDataset("data/real_data/train", transforms=transforms.Compose([transforms.ToTensor(), transforms.Resize((256, 128)), transforms.CenterCrop((256, 128)), Normalise()]))
-    dataloader = torch.utils.data.DataLoader(dataset, batch_size=16)
-    print("Batch size:", next(iter(dataloader)).shape)
-    unique = torch.unique(next(iter(dataloader))[0][0])
-    print(unique)
+    def __init__(self, images_dir: str, transform: transforms.Compose=HipMRIStudyTransforms) -> None:
+        """
+        Initialise dataset.
+        :param images_dir: Path to the directory containing the data set.
+        :param transform: The transforms to be applied to the data as it is loaded.
+        """
 
+        self._images_dir = images_dir
+        self._transforms = transform
+
+        # Get paths to all images in the image directory
+        self._img_paths = glob(os.path.join(self._images_dir, '*'))
+
+    def __len__(self) -> int:
+        """
+        :return: The number of items in this dataset.
+        """
+        return len(self._img_paths)
+
+    def __getitem__(self, idx: int) -> Union[torch.Tensor, np.ndarray]:
+        """
+        :return: The data item at index idx.
+        """
+
+        if self._transforms:
+            data = get_data_2d([self._img_paths[idx]])[0]
+            data = self._transforms(data)
+        else:
+            # just get data normalised
+            data = get_data_2d([self._img_paths[idx]], normImage=True)[0]
+
+        return data

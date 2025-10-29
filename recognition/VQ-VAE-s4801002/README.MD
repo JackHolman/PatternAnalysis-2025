@@ -1,4 +1,5 @@
-
+## Reproducibility
+Before the model starts training, seeds for inbuilt random and PyTorch random are set to a pre-determined value. Additionally, PyTorch is set to use deterministic algorithms to ensure that results are reproducible.
 
 ## References
 [1] K. Rasul, “vq-vae.ipynb - Colab,” Google Colab, Nov. 14, 2019.
