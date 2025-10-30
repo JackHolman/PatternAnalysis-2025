@@ -1,3 +1,19 @@
+# Title
+
+## Description of Algorithm
+
+## Description of Problem
+
+### Pre-processing
+
+## How it Works
+
+### Running Guide
+#### Dependencies
+
+## Figures
+
+
 ## Reproducibility
 Before the model starts training, seeds for inbuilt random and PyTorch random are set to a pre-determined value. Additionally, PyTorch is set to use deterministic algorithms to ensure that results are reproducible.
 
