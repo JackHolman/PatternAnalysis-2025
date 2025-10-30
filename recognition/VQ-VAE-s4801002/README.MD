@@ -9,8 +9,7 @@ Description of data?
 ### Pre-processing
 The data was pre-processed by resizing and cropping each image to 128x64 before normalising the data to be in range [0, 1]. The data was resized to reduce model size and complexity, allowing for faster training convergence.  The data was normalised to [0, 1] so that a sigmoid activation function could be used as the final step in the decoder.
 ## How it Works
-Description of the training algorithm? 
-- why only use test set for eval
+Description of the training algorithm?
 
 ### Running Guide
 #### Dependencies
@@ -38,16 +37,15 @@ python3 predict.py
 ```
 
 ## Results
-- Reconstruction loss on train set
-- SSIM on train set
+When training was finished, the model was used to run an additional epoch of inference on the train set, the average Structural Similarity Index Measure (SSIM) of this epoch was 0.7843, and the average reconstruction loss was 0.0350.
 
 A plot showing each type of loss for every batch while training can be found in Figure 3.
 
-At the conclusion of training, the model was used to produce reconstructions on the test set in inference mode. The reconstructions can be found in Figure 2. The average Structural Similarity Index Measure on the test set was 0.6111, and the average reconstruction loss was 0.0589.
+At the conclusion of training, the model was used to produce reconstructions on the test set in inference mode. The reconstructions can be found in Figure 2. The average SSIM on the test set was 0.6111, and the average reconstruction loss was 0.0589.
 
 ### Figures
-#### Figure 1: Train Set Reconstructions After 100 Epochs
-![Figure 1: Train Set Reconstructions After 100 Epochs](imgs/train-100.png)
+#### Figure 1: Train Set Reconstructions After Training Finished
+![Figure 1: Train Set Reconstructions After 100 Epochs](imgs/inference.png)
 #### Figure 2: Test Set Reconstructions After Conclusion Of Training
 ![Figure 2: Test Set Reconstructions After Conclusion Of Training](imgs/test.png)
 #### Figure 3: Plot Of Loss Of Each Training Batch

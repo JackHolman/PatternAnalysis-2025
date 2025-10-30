@@ -72,7 +72,7 @@ def infer_dataset(model: VQVAE) -> None:
     print("Running inference on dataset")
 
     # Define the data set to use.
-    inference_set = HipMRIStudyDataset("/home/groups/comp3710/HipMRI_Study_open/keras_slices_data/keras_slices_train",
+    inference_set = HipMRIStudyDataset("/home/groups/comp3710/HipMRI_Study_open/keras_slices_data/keras_slices_validate",
                                    transform=HipMRIStudyTransforms)
     inference_loader = torch.utils.data.DataLoader(inference_set, batch_size=16, shuffle=False)
 
