@@ -22,6 +22,9 @@ pip3 install -r requirements.txt
 #### Data
 All scripts assume they will be run on the Rangpur cluster, so the dataset paths point to the location of the data on Rangpur. 
 
+#### Plots
+The training script creates plots every 5 epochs, they are saved in the `plots` subdirectory in the current working directory, it is assumed this directory exists.
+
 #### Training
 In an environment with the dependencies installed, the training algorithm can be run using the following command.
 ```bash

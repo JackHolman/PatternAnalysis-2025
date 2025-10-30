@@ -289,7 +289,7 @@ class VQVAE(nn.Module):
         :param quantise: Use the quantiser. Default True.
         :param disp_unique: Display the number of unique encodings used by the quantiser. Has no effect when
         quantise is False. Default False.
-        :return: (Output tensor of shape (B, 2, 64, 128), commitment loss, codebook loss)
+        :return: (Output tensor of shape (B, 1, 64, 128), commitment loss, codebook loss)
         """
 
         x = self._encoder(inputs)
