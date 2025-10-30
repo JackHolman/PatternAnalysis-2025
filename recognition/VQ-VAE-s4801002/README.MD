@@ -1,17 +1,36 @@
-# Title
+# Vector Quantisation Variational Auto Encoder
 
 ## Description of Algorithm
 
 ## Description of Problem
 
 ### Pre-processing
-
+The data was pre-processed by resizing and cropping each image to 128x64 before normalising the data to be in range [0, 1]. The data was resized to reduce model size and complexity, allowing for faster training convergence.  The data was normalised to [0, 1] so that a sigmoid activation function could be used as the final step in the decoder.
 ## How it Works
+Description of the training algorithm? 
 
 ### Running Guide
 #### Dependencies
+The Python packages required for all scripts are listed in `requirements.txt`. They can be installed by running
+```bash
+pip3 install -r requirements.txt
+```
 
-## Figures
+#### Training
+In an environment with the dependencies installed, the training algorithm can be run using the following command.
+```bash
+python3 train.py
+```
+
+#### Inference
+In an environment with the dependencies installed, a saved model can be loaded and used for inference. The `predict.py` script assumes there is a file in the current working directory named `vq-vae.model`, this is the model that will be used for inference. If this model file is present, the predict script can be run using the following command.
+```bash
+python3 predict.py
+```
+
+## Results
+
+### Figures
 
 
 ## Reproducibility
