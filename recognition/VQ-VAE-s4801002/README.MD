@@ -98,13 +98,16 @@ of five synthetic images can be found in Figure 4.
 
 ### Figures
 #### Figure 1: Train Set Reconstructions After Training Finished
-![Figure 1: Train Set Reconstructions After 100 Epochs](imgs/inference.png)
+![Train Set Reconstructions After 100 Epochs](imgs/inference.png)
+
 #### Figure 2: Plot Of Loss Of Each Training Batch
-![Figure 2: Plot Of Loss Of Each Training Batch](imgs/loss.png)
+![Plot Of Loss Of Each Training Batch](imgs/loss.png)
+
 #### Figure 3: Test Set Reconstructions After Conclusion Of Training
-![Figure 3: Test Set Reconstructions After Conclusion Of Training](imgs/test.png)
+![Test Set Reconstructions After Conclusion Of Training](imgs/test.png)
+
 #### Figure 4: Synthetic Images
-![Figure 4: Synthetic Images](imgs/synthetic.png)
+![Synthetic Images](imgs/synthetic.png)
 
 ## References
 [1] A. van den Oord, O. Vinyals, and K. Kavukcuoglu, “Neural Discrete Representation Learning,” arXiv.org, May 30, 2018.
