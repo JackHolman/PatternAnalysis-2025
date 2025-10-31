@@ -1,7 +1,9 @@
 # Vector Quantisation Variational Auto Encoder
 
 ## Description of Algorithm
-What is a VQ-VAE? Who proposed it? What makes it distinct? What does it hope to address?
+A Vector Quantisation Variational Auto Encoder (VQ-VAE) is a model proposed by van den Oord et al. that incorporates the idea of quantising encoder outputs into a discrete latent space into Variational Auto Encoders (VAEs) [1]. 
+The encoder outputs are quantised by replacing them with the nearest discrete embedding in a learned codebook, this aims to avoid the issue of posterior collapse, wherein  the latent representations can be ignored if a powerful enough decoder is used [1].
+To allow the discrete embeddings to be learned, a codebook loss and commitment loss are used. The codebook loss pulls the embeddings in the codebook closer to the encoder outputs quantised into that embedding while the commitment loss pulls encoder outputs closer to the embeddings they are quantised into. 
 
 ## Description of Problem
 Description of data?
@@ -55,6 +57,8 @@ At the conclusion of training, the model was used to produce reconstructions on 
 Before the model starts training, seeds for inbuilt random and PyTorch random are set to a pre-determined value. Additionally, PyTorch is set to use deterministic algorithms to ensure that results are reproducible.
 
 ## References
-[1] K. Rasul, “vq-vae.ipynb - Colab,” Google Colab, Nov. 14, 2019.
+[1] A. van den Oord, O. Vinyals, and K. Kavukcuoglu, “Neural Discrete Representation Learning,” arXiv.org, May 30, 2018. https://arxiv.org/abs/1711.00937v2
+
+[2] K. Rasul, “vq-vae.ipynb - Colab,” Google Colab, Nov. 14, 2019.
     https://colab.research.google.com/github/zalandoresearch/pytorch-vq-vae/blob/master/vq-vae.ipynb
     (accessed Oct. 29, 2025).

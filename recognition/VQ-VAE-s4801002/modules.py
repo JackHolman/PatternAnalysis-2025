@@ -7,7 +7,7 @@ class VectorQuantiser(nn.Module):
     Codebook vectors are initially assigned uniformly over [-1/embedding_num, 1/embedding_num], however through
     the codebook loss component returned by the forward pass they can be updated to more similar to the input.
 
-    The structure of this class is based on an example by Kashif Rasul [1].
+    The structure of this class is based on an example by Kashif Rasul [2].
     """
 
     def __init__(self, embedding_num: int, embedding_dim: int) -> None:
