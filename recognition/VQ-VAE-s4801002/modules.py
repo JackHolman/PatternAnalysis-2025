@@ -257,7 +257,7 @@ class Decoder(nn.Module):
 
 class VQVAE(nn.Module):
     """
-    Vector Quantisation Variation Auto Encoder module.
+    Vector Quantised Variation Auto Encoder module.
 
     Encodes input into latent space using Encoder module.
     Quantises latent space used Vector Quantiser module.

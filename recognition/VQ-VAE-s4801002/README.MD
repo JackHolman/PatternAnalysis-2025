@@ -1,7 +1,7 @@
-# Vector Quantisation Variational Auto Encoder
+# Vector Quantised Variational Auto Encoder
 
-## Description of Vector Quantisation Variational Auto Encoder
-A Vector Quantisation Variational Auto Encoder (VQ-VAE) is a model proposed by van den Oord et al. that incorporates the
+## Description of Vector Quantised Variational Auto Encoder
+A Vector Quantised Variational Auto Encoder (VQ-VAE) is a model proposed by van den Oord et al. that incorporates the
 idea of quantising encoder outputs into a discrete latent space into Variational Auto Encoders (VAEs) [1]. 
 The encoder outputs are quantised by replacing them with the nearest discrete embedding in a learned codebook, this aims
 to avoid the issue of posterior collapse, wherein the latent representations can be ignored if a powerful enough 
